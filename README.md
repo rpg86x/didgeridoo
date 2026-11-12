@@ -48,6 +48,16 @@ English (default) and Dutch, plus German, French and Spanish. Pick another langu
 
 You can also open `index.html` in any modern browser, including on a phone or tablet.
 
+## Android
+
+The `android` folder wraps the same `index.html` in a small full-screen app (`nl.didgeridoo.app`, Android 8 or newer). Build it on Windows with the Android SDK and Android Studio installed:
+
+```
+android\build.ps1 -Install
+```
+
+The script needs no Gradle. It creates its own signing key in `android\data` on the first run and writes the APK to `android\out`.
+
 ## Support
 
 If you enjoy playing, you can [buy me a coffee ☕](https://urbantechmonk.gumroad.com/coffee).

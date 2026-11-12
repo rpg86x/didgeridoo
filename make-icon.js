@@ -89,4 +89,10 @@ function ico(images) {
 const images = [256, 64, 48, 32, 24, 16].map(size => ({ size, data: png(size, render(size)) }));
 fs.writeFileSync(path.join(__dirname, 'icon.ico'), ico(images));
 fs.writeFileSync(path.join(__dirname, 'logo.png'), images[0].data);
-console.log('icon.ico en logo.png gemaakt');
+// Android: startpictogram per schermdichtheid
+for (const [d, size] of [['mdpi', 48], ['hdpi', 72], ['xhdpi', 96], ['xxhdpi', 144], ['xxxhdpi', 192]]) {
+  const dir = path.join(__dirname, 'android', 'res', `mipmap-${d}`);
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, 'ic_launcher.png'), png(size, render(size)));
+}
+console.log('icon.ico, logo.png en Android-pictogrammen gemaakt');
