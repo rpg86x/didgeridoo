@@ -2,6 +2,8 @@
 
 A didgeridoo you can play on your keyboard, mouse or touchscreen, for Windows and any modern browser. Hold to blow the drone, change the shape of your mouth to bring out the overtones, and add toots, barks, howls and tongue accents. Every sound is synthesized live with the Web Audio API, so there are no audio files and the app needs no internet.
 
+**▶ Play it in your browser: https://rpg86x.github.io/didgeridoo/**
+
 ![Didgeridoo](logo.png)
 
 The didgeridoo (yidaki) comes from the Aboriginal peoples of northern Australia, who have played it for well over a thousand years. This app is a simple tribute to that sound. The painted bands and dots are plain decoration and do not copy any traditional design.
