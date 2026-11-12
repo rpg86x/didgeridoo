@@ -1,0 +1,683 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Didgeridoo 1.0</title>
+<link rel="icon" href="logo.png">
+<style>
+  :root {
+    --bg1: #100c09; --bg2: #2a1c13; --text: #f3ece2; --muted: #a99c8c;
+    --accent: #e9a04e; --panel: rgba(255, 255, 255, .05); --line: rgba(255, 255, 255, .13);
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    height: 100dvh;
+    background: radial-gradient(ellipse at 50% 30%, var(--bg2), var(--bg1) 72%);
+    color: var(--text); font-family: "Segoe UI", system-ui, sans-serif;
+    display: flex; flex-direction: column; overflow: hidden; user-select: none; -webkit-user-select: none; touch-action: none;
+  }
+  header { position: relative; display: flex; align-items: center; justify-content: center; gap: 18px; padding: 16px 16px 0; }
+  header h1 { margin: 0; font-weight: 300; letter-spacing: .3em; font-size: 13px; text-transform: uppercase; color: var(--muted); position: absolute; left: 20px; top: 18px; }
+  #lang {
+    position: absolute; right: 16px; top: 14px; z-index: 4;
+    background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 999px;
+    padding: 5px 10px; font: inherit; font-size: 13px; cursor: pointer;
+  }
+  #lang option, #lang optgroup { background: var(--bg2); color: var(--text); }
+  #info { text-align: center; min-width: 260px; }
+  #name { font-size: 24px; font-weight: 300; }
+  #meta { color: var(--accent); font-size: 13px; letter-spacing: .04em; margin-top: 2px; }
+  #mood { color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .nav {
+    width: 42px; height: 42px; flex: none; border-radius: 50%; border: 1px solid var(--line);
+    background: var(--panel); color: var(--text); font-size: 24px; cursor: pointer; display: grid; place-items: center;
+  }
+  .nav:hover { background: rgba(255, 255, 255, .12); }
+  #stage { flex: 1; min-height: 130px; position: relative; }
+  #cv { position: absolute; inset: 0; width: 100%; height: 100%; cursor: pointer; }
+
+  #strip { position: relative; display: flex; gap: 6px; padding: 0 16px; max-width: 760px; width: 100%; margin: 0 auto; }
+  #marker {
+    position: absolute; top: -7px; width: 0; height: 0; margin-left: -6px; pointer-events: none;
+    border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 7px solid var(--accent);
+    opacity: .35; transition: opacity .15s;
+  }
+  body.blowing #marker { opacity: 1; }
+  .btn {
+    border-radius: 9px; border: 1px solid var(--line); background: var(--panel); color: var(--text);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+    font: inherit; cursor: pointer; padding: 6px 4px; min-height: 48px;
+  }
+  .btn b { font-size: 14px; font-weight: 600; color: var(--accent); pointer-events: none; }
+  .btn span { font-size: 11px; color: var(--muted); white-space: nowrap; pointer-events: none; }
+  .btn.lit, .btn[aria-pressed="true"] { background: rgba(233, 160, 78, .3); border-color: var(--accent); }
+  .btn.lit span, .btn[aria-pressed="true"] span { color: var(--text); }
+  #strip .btn { flex: 1; min-height: 56px; }
+  #strip .btn span { font-size: 15px; color: var(--text); }
+  #fx, #modes { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; padding: 8px 16px 0; }
+  #fx .btn { width: 86px; } #fx .btn b { color: #8fd3b0; }
+  #modes .btn { min-width: 150px; flex-direction: row; gap: 8px; min-height: 40px; }
+  #modes .btn b { color: #c9a9e6; }
+  #modes .btn span { font-size: 13px; }
+  #controls { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 22px; padding: 10px 16px 4px; }
+  label { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+  input[type=range] { width: 110px; accent-color: var(--accent); }
+  footer { display: flex; justify-content: space-between; gap: 12px; padding: 6px 16px 10px; font-size: 12px; color: var(--muted); opacity: .8; }
+  footer b { color: var(--text); font-weight: 600; }
+  footer a { color: var(--accent); text-decoration: none; white-space: nowrap; }
+  footer a:hover { text-decoration: underline; }
+  button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  @media (max-width: 760px) {
+    header h1 { display: none; }
+    header { padding-top: 50px; gap: 10px; }
+    #info { min-width: 0; } #name { font-size: 20px; }
+    #fx .btn { width: calc(33.3% - 4px); }
+    #modes .btn { min-width: 0; flex: 1; }
+    footer #keys { display: none; }
+    footer { justify-content: center; }
+    input[type=range] { width: 84px; }
+  }
+  @media (max-height: 620px) { .btn { min-height: 38px; } #strip .btn { min-height: 44px; } #mood { display: none; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Didgeridoo 1.0</h1>
+  <button class="nav" id="prev">‹</button>
+  <div id="info"><div id="name"></div><div id="meta"></div><div id="mood"></div></div>
+  <button class="nav" id="next">›</button>
+  <select id="lang" aria-label="Language">
+    <option value="en">English</option>
+    <option value="nl">Nederlands</option>
+    <optgroup label="More languages">
+      <option value="de">Deutsch</option>
+      <option value="fr">Français</option>
+      <option value="es">Español</option>
+    </optgroup>
+  </select>
+</header>
+
+<div id="stage"><canvas id="cv"></canvas></div>
+
+<div id="strip"><div id="marker"></div></div>
+<div id="fx"></div>
+<div id="modes"></div>
+
+<div id="controls">
+  <label><span data-t="volume"></span> <input type="range" id="vol" min="0" max="1" step="0.01" value="0.8"></label>
+  <label><span data-t="reverb"></span> <input type="range" id="verb" min="0" max="1" step="0.01" value="0.25"></label>
+  <label><span data-t="tempo"></span> <input type="range" id="tempo" min="60" max="150" step="1" value="96"></label>
+</div>
+
+<footer>
+  <span id="keys" data-t="keys"></span>
+  <span><a href="https://urbantechmonk.gumroad.com/coffee" target="_blank" rel="noopener" data-t="donate"></a> · Didgeridoo 1.0</span>
+</footer>
+
+<script>
+// ---------- Didgeridoos, van laag naar hoog ----------
+// f = grondtoon (drone), toot = verhouding van de overblaastoon, cm = lengte bij benadering
+const DIDGES = [
+  { note: 'B1', f: 61.74, cm: 157, toot: 2.58, bright: .8,  wood: ['#6b4630', '#2a1a11'], paint: ['#efe3c8', '#a8452a', '#17110d', '#d9a441'] },
+  { note: 'C2', f: 65.41, cm: 148, toot: 2.6,  bright: .9,  wood: ['#7a4f2c', '#33200f'], paint: ['#f1e6cf', '#17110d', '#c9622b', '#8a2f1d'] },
+  { note: 'D2', f: 73.42, cm: 132, toot: 2.62, bright: 1,   wood: ['#8a5a33', '#3a2413'], paint: ['#f3ead6', '#b5482a', '#1b1410', '#e0b04c'] },
+  { note: 'E2', f: 82.41, cm: 118, toot: 2.65, bright: 1.1, wood: ['#9b6a3f', '#44290f'], paint: ['#1b1410', '#f3ead6', '#d9a441', '#9c3a22'] },
+  { note: 'F2', f: 87.31, cm: 110, toot: 2.68, bright: 1.2, wood: ['#a3713f', '#4a2e14'], paint: ['#f5efe0', '#c9622b', '#2a1a11', '#6f8f5a'] },
+  { note: 'G2', f: 98.0,  cm: 98,  toot: 2.7,  bright: 1.3, wood: ['#b07d48', '#523416'], paint: ['#9c3a22', '#f3ead6', '#17110d', '#e0b04c'] },
+];
+
+// Mondstanden: eerste en tweede formant per klinker (oe – o – a – è – ie)
+const VOW = [[300, 760], [430, 920], [720, 1180], [520, 1750], [310, 2250]];
+const VOW_KEYS = ['KeyA', 'KeyS', 'KeyD', 'KeyF', 'KeyG'];
+const FX = [['KeyZ', 'toot'], ['KeyX', 'bark'], ['KeyC', 'howl'], ['KeyV', 'growl'], ['KeyJ', 'ta'], ['KeyK', 'wah']];
+const MODES = [['KeyW', 'keep'], ['KeyR', 'rhythm'], ['Escape', 'stop']];
+// Ritme in achtsten: [mondstand, accent]
+const PATTERN = [[0, 'ta'], [2], [4], [2], [0, 'wah'], [1], [4, 'ta'], [1], [0, 'ta'], [2], [4], [3], [0, 'wah'], [4, 'ta'], [2], [1, 'wah']];
+
+// ---------- Talen ----------
+const KEYS = (blow, mouth, fx, acc, keep, rhythm, didge) =>
+  `<b>${blow}</b> · <b>A–G</b> = ${mouth} · <b>Z X C V</b> = ${fx} · <b>J K</b> = ${acc} · <b>W</b> = ${keep} · <b>R</b> = ${rhythm} · <b>&lt; &gt;</b> = ${didge}`;
+const LANGS = {
+  en: {
+    prev: 'Previous didgeridoo (< or ←)', next: 'Next didgeridoo (> or →)',
+    volume: 'Volume', reverb: 'Reverb', tempo: 'Tempo', space: 'Space',
+    vowels: ['oo', 'oh', 'ah', 'eh', 'ee'],
+    fx: { toot: 'Toot', bark: 'Bark', howl: 'Howl', growl: 'Growl', ta: 'Ta', wah: 'Wah' },
+    modes: { keep: 'Keep droning', rhythm: 'Rhythm', stop: 'Silence' },
+    keys: KEYS('Space = blow', 'mouth shape', 'toot, bark, howl, growl', 'accents', 'keep droning', 'rhythm', 'didgeridoo'),
+    donate: '☕ Buy me a coffee', more: 'More languages',
+    names: ['Low B', 'Deep C', 'Classic D', 'Warm E', 'Bright F', 'High G'],
+    moods: ['Very deep and slow, for stillness and grounding', 'Dark and full, a calm drone for meditation', 'The all-rounder most players start with',
+      'Lively and clear, good for rhythm', 'Bright and quick, easy to play fast', 'Short and high, for sharp rhythms'],
+  },
+  nl: {
+    prev: 'Vorige didgeridoo (< of ←)', next: 'Volgende didgeridoo (> of →)',
+    volume: 'Volume', reverb: 'Galm', tempo: 'Tempo', space: 'Spatie',
+    vowels: ['oe', 'oo', 'aa', 'è', 'ie'],
+    fx: { toot: 'Toeter', bark: 'Blaf', howl: 'Huil', growl: 'Grom', ta: 'Ta', wah: 'Wah' },
+    modes: { keep: 'Laten doorspelen', rhythm: 'Ritme', stop: 'Stilte' },
+    keys: KEYS('Spatie = blazen', 'mondstand', 'toeter, blaf, huil, grom', 'accenten', 'laten doorspelen', 'ritme', 'didgeridoo'),
+    donate: '☕ Trakteer me op een koffie', more: 'Meer talen',
+    names: ['Lage B', 'Diepe C', 'Klassieke D', 'Warme E', 'Heldere F', 'Hoge G'],
+    moods: ['Heel diep en traag, voor stilte en aarding', 'Donker en vol, een rustige drone voor meditatie', 'De allrounder waar de meeste spelers mee beginnen',
+      'Levendig en helder, goed voor ritme', 'Helder en vlot, makkelijk snel te spelen', 'Kort en hoog, voor scherpe ritmes'],
+  },
+  de: {
+    prev: 'Vorheriges Didgeridoo (< oder ←)', next: 'Nächstes Didgeridoo (> oder →)',
+    volume: 'Lautstärke', reverb: 'Hall', tempo: 'Tempo', space: 'Leertaste',
+    vowels: ['u', 'o', 'a', 'ä', 'i'],
+    fx: { toot: 'Tröte', bark: 'Bellen', howl: 'Heulen', growl: 'Knurren', ta: 'Ta', wah: 'Wah' },
+    modes: { keep: 'Weiterspielen', rhythm: 'Rhythmus', stop: 'Stille' },
+    keys: KEYS('Leertaste = blasen', 'Mundstellung', 'Tröte, Bellen, Heulen, Knurren', 'Akzente', 'weiterspielen', 'Rhythmus', 'Didgeridoo'),
+    donate: '☕ Spendier mir einen Kaffee', more: 'Weitere Sprachen',
+    names: ['Tiefes H', 'Tiefes C', 'Klassisches D', 'Warmes E', 'Helles F', 'Hohes G'],
+    moods: ['Sehr tief und langsam, für Stille und Erdung', 'Dunkel und voll, ein ruhiger Bordun für die Meditation', 'Der Allrounder, mit dem die meisten anfangen',
+      'Lebendig und klar, gut für Rhythmen', 'Hell und flink, leicht schnell zu spielen', 'Kurz und hoch, für scharfe Rhythmen'],
+  },
+  fr: {
+    prev: 'Didgeridoo précédent (< ou ←)', next: 'Didgeridoo suivant (> ou →)',
+    volume: 'Volume', reverb: 'Réverb', tempo: 'Tempo', space: 'Espace',
+    vowels: ['ou', 'o', 'a', 'è', 'i'],
+    fx: { toot: 'Trompe', bark: 'Aboiement', howl: 'Hurlement', growl: 'Grognement', ta: 'Ta', wah: 'Wah' },
+    modes: { keep: 'Laisser jouer', rhythm: 'Rythme', stop: 'Silence' },
+    keys: KEYS('Espace = souffler', 'forme de la bouche', 'trompe, aboiement, hurlement, grognement', 'accents', 'laisser jouer', 'rythme', 'didgeridoo'),
+    donate: '☕ Offrez-moi un café', more: 'Autres langues',
+    names: ['Si grave', 'Do profond', 'Ré classique', 'Mi chaleureux', 'Fa clair', 'Sol aigu'],
+    moods: ['Très grave et lent, pour le calme et l’ancrage', 'Sombre et plein, un bourdon calme pour méditer', 'Le polyvalent avec lequel la plupart commencent',
+      'Vif et clair, idéal pour le rythme', 'Clair et rapide, facile à jouer vite', 'Court et aigu, pour des rythmes nets'],
+  },
+  es: {
+    prev: 'Didgeridoo anterior (< o ←)', next: 'Didgeridoo siguiente (> o →)',
+    volume: 'Volumen', reverb: 'Reverb', tempo: 'Tempo', space: 'Espacio',
+    vowels: ['u', 'o', 'a', 'e', 'i'],
+    fx: { toot: 'Trompeta', bark: 'Ladrido', howl: 'Aullido', growl: 'Gruñido', ta: 'Ta', wah: 'Wah' },
+    modes: { keep: 'Dejar sonar', rhythm: 'Ritmo', stop: 'Silencio' },
+    keys: KEYS('Espacio = soplar', 'forma de la boca', 'trompeta, ladrido, aullido, gruñido', 'acentos', 'dejar sonar', 'ritmo', 'didgeridoo'),
+    donate: '☕ Invítame a un café', more: 'Más idiomas',
+    names: ['Si grave', 'Do profundo', 'Re clásico', 'Mi cálido', 'Fa brillante', 'Sol agudo'],
+    moods: ['Muy grave y lento, para la calma y el arraigo', 'Oscuro y lleno, un bordón tranquilo para meditar', 'El todoterreno con el que casi todos empiezan',
+      'Vivo y claro, bueno para el ritmo', 'Brillante y ágil, fácil de tocar rápido', 'Corto y agudo, para ritmos marcados'],
+  },
+};
+
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('didge.' + k); return v === null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem('didge.' + k, JSON.stringify(v)); } catch {} },
+};
+const $ = (id) => document.getElementById(id);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+// ---------- Toestand ----------
+let idx = clamp(store.get('didge', 2), 0, DIDGES.length - 1);
+const cur = () => DIDGES[idx];
+const held = new Set();          // alles wat nu blaast: toetsen en vingers
+let vowStack = [];               // ingedrukte mondstand-toetsen, laatste wint
+let vow = 1;                     // huidige mondstand, 0..4 (traploos)
+let latch = false, rhythmOn = false, tooting = false, growling = false;
+const blowing = () => held.size > 0 || latch || rhythmOn;
+
+// ---------- Audio ----------
+let ctx, master, bus, wet, an, anBuf, noiseBuf;
+let lip, breath, sum, bp1, bp2, bp3, g2, bodyLP, lipO = [], sub, voice, voiceG, tootO = [], tootG, tootStart = 0;
+
+function initAudio() {
+  if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return; }
+  ctx = new AudioContext({ latencyHint: 'interactive' });
+  const G = (v) => { const g = ctx.createGain(); g.gain.value = v; return g; };
+  const O = (type, f) => { const o = ctx.createOscillator(); o.type = type; o.frequency.value = f; o.start(); return o; };
+  const F = (type, f, q) => { const b = ctx.createBiquadFilter(); b.type = type; b.frequency.value = f; b.Q.value = q; return b; };
+
+  master = G(0);
+  const comp = ctx.createDynamicsCompressor();
+  comp.threshold.value = -14; comp.ratio.value = 4;
+  master.connect(comp).connect(ctx.destination);
+  an = ctx.createAnalyser(); an.fftSize = 1024; anBuf = new Float32Array(an.fftSize); comp.connect(an);
+  bus = G(1);
+  bus.connect(G(.9)).connect(master);
+  const conv = ctx.createConvolver(); conv.buffer = impulse(2.6);
+  wet = G(0); bus.connect(conv).connect(wet).connect(master);
+
+  noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+  const nd = noiseBuf.getChannelData(0);
+  for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+  const noise = ctx.createBufferSource(); noise.buffer = noiseBuf; noise.loop = true; noise.start();
+
+  const f = cur().f;
+  sum = G(1);
+  const tubeIn = G(1);
+  // Lippen: twee zaagtanden die net niet gelijk lopen, plus een zuivere grondtoon
+  lip = G(0);
+  lipO = [O('sawtooth', f), O('sawtooth', f)];
+  sub = O('sine', f);
+  lipO[0].connect(G(.5)).connect(lip); lipO[1].connect(G(.3)).connect(lip); sub.connect(G(.45)).connect(lip);
+  lip.connect(tubeIn);
+  // Stem door de buis: blaf, huil en grom
+  voice = O('sawtooth', f * 1.5); voiceG = G(0);
+  voice.connect(voiceG).connect(tubeIn); voiceG.connect(G(.25)).connect(sum);
+  // De buis: lage romp, twee meebewegende mondformanten en één vaste buisresonantie
+  bodyLP = F('lowpass', f * 3.2, .8); bp1 = F('bandpass', 430, 5); bp2 = F('bandpass', 920, 8); bp3 = F('bandpass', f * 2.6, 5);
+  g2 = G(5);
+  tubeIn.connect(bodyLP).connect(G(.75)).connect(sum);
+  tubeIn.connect(bp1).connect(G(2.4)).connect(sum);
+  tubeIn.connect(bp2).connect(g2).connect(sum);
+  tubeIn.connect(bp3).connect(G(1.2)).connect(sum);
+  breath = G(0);
+  noise.connect(F('bandpass', 1500, .6)).connect(breath).connect(sum);
+  // Toeter: de overblaastoon, de lippen springen naar de volgende resonantie
+  tootO = [O('sawtooth', f * 2.6), O('sawtooth', f * 2.6)]; tootO[1].detune.value = 9;
+  tootG = G(0);
+  const tootLP = F('lowpass', 1500, 1.2);
+  tootO[0].connect(tootLP); tootO[1].connect(tootLP); tootLP.connect(tootG).connect(sum);
+
+  const shaper = ctx.createWaveShaper(), curve = new Float32Array(1024);
+  for (let i = 0; i < 1024; i++) curve[i] = Math.tanh((i / 511.5 - 1) * 1.6);
+  shaper.curve = curve; shaper.oversample = '2x';
+  sum.connect(shaper).connect(G(.42)).connect(bus);
+  tune(); setVowel(vow); applyMix();
+}
+
+function impulse(sec) {
+  const len = Math.floor(ctx.sampleRate * sec), buf = ctx.createBuffer(2, len, ctx.sampleRate);
+  for (let c = 0; c < 2; c++) {
+    const d = buf.getChannelData(c);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
+  }
+  return buf;
+}
+function applyMix() {
+  if (!ctx) return;
+  master.gain.setTargetAtTime(+vol.value, ctx.currentTime, .05);
+  wet.gain.setTargetAtTime(+verb.value * .9, ctx.currentTime, .05);
+}
+// Toekomstige automatisering wissen zonder dat de waarde verspringt
+const hold = (p, t) => { if (p.cancelAndHoldAtTime) p.cancelAndHoldAtTime(t); else p.cancelScheduledValues(t); };
+
+function tune() {
+  if (!ctx) return;
+  const d = cur(), t = ctx.currentTime;
+  [...lipO, sub].forEach(o => o.frequency.setTargetAtTime(d.f, t, .04));
+  if (growling) voice.frequency.setTargetAtTime(d.f * 1.5, t, .04);
+  tootO.forEach(o => o.frequency.setTargetAtTime(d.f * d.toot, t, .04));
+  bodyLP.frequency.setTargetAtTime(d.f * 3.2, t, .04);
+  bp3.frequency.setTargetAtTime(d.f * d.toot, t, .04);
+  g2.gain.setTargetAtTime(5 * d.bright, t, .04);
+}
+
+function gate(t) {
+  if (!ctx) return;
+  t = t ?? ctx.currentTime;
+  const on = blowing() && !tooting;
+  hold(lip.gain, t);
+  lip.gain.setTargetAtTime(on ? 1 : 0, t, on ? .035 : .07);
+  breath.gain.setTargetAtTime(on ? .05 : 0, t, .05);
+  document.body.classList.toggle('blowing', blowing());
+}
+
+function formants(v) {
+  const a = Math.floor(clamp(v, 0, 3.999)), k = clamp(v, 0, 4) - a;
+  return [0, 1].map(i => VOW[a][i] * Math.pow(VOW[a + 1][i] / VOW[a][i], k));
+}
+function setVowel(v, t) {
+  vow = clamp(v, 0, 4);
+  if (ctx) {
+    const [f1, f2] = formants(vow);
+    t = t ?? ctx.currentTime;
+    bp1.frequency.setTargetAtTime(f1, t, .025); bp2.frequency.setTargetAtTime(f2, t, .025);
+  }
+}
+
+// Accenten: 'ta' = harde tongslag, 'wah' = wangen die even open en dicht gaan
+function accent(kind, t, backTo) {
+  initAudio();
+  t = t ?? ctx.currentTime;
+  const base = blowing() && !tooting ? 1 : 0, [f1, f2] = formants(backTo ?? vow);
+  if (kind === 'ta') {
+    lip.gain.setTargetAtTime(.08, t, .006);
+    lip.gain.setTargetAtTime(1.35, t + .028, .008);
+    lip.gain.setTargetAtTime(base, t + .1, .05);
+    bp2.frequency.setTargetAtTime(2500, t + .02, .008);
+    bp2.frequency.setTargetAtTime(f2, t + .09, .03);
+    const n = ctx.createBufferSource(), flt = ctx.createBiquadFilter(), g = ctx.createGain();
+    n.buffer = noiseBuf; flt.type = 'bandpass'; flt.frequency.value = 2600; flt.Q.value = 1.2;
+    g.gain.setValueAtTime(.1, t + .025); g.gain.exponentialRampToValueAtTime(.0001, t + .075);
+    n.connect(flt).connect(g).connect(sum); n.start(t + .025); n.stop(t + .09);
+    n.onended = () => g.disconnect();
+  } else {
+    lip.gain.setTargetAtTime(1.25, t, .02);
+    lip.gain.setTargetAtTime(base, t + .13, .05);
+    bp1.frequency.setTargetAtTime(VOW[2][0], t, .02); bp2.frequency.setTargetAtTime(VOW[2][1], t, .02);
+    bp1.frequency.setTargetAtTime(f1, t + .13, .035); bp2.frequency.setTargetAtTime(f2, t + .13, .035);
+  }
+}
+
+function tootOn() {
+  initAudio();
+  if (tooting) return;
+  const t = ctx.currentTime, ft = cur().f * cur().toot;
+  tooting = true; tootStart = t; gate();
+  tootO.forEach(o => { hold(o.frequency, t); o.frequency.setValueAtTime(ft * .93, t); o.frequency.exponentialRampToValueAtTime(ft, t + .07); });
+  hold(tootG.gain, t); tootG.gain.setTargetAtTime(.55, t + .02, .02);
+}
+function tootOff() {
+  if (!tooting) return;
+  const t = Math.max(ctx.currentTime, tootStart + .22);   // een toeter klinkt altijd even
+  tooting = false;
+  tootG.gain.setTargetAtTime(0, t, .04);
+  gate(t);
+}
+
+function voiceRest(t) {
+  // Na een blaf of huil: terug naar grom (als die nog aan staat) of stil
+  voice.frequency.setValueAtTime(cur().f * 1.5, t);
+  voiceG.gain.setTargetAtTime(growling ? .5 : 0, t, .04);
+}
+function bark() {
+  initAudio();
+  const t = ctx.currentTime, f = cur().f;
+  hold(voice.frequency, t); hold(voiceG.gain, t);
+  voice.frequency.setValueAtTime(f * 6.2, t); voice.frequency.exponentialRampToValueAtTime(f * 3.4, t + .17);
+  voiceG.gain.setValueAtTime(0, t); voiceG.gain.linearRampToValueAtTime(.9, t + .012); voiceG.gain.setTargetAtTime(0, t + .05, .045);
+  voiceRest(t + .3);
+}
+function howl() {
+  initAudio();
+  const t = ctx.currentTime, f = cur().f;
+  hold(voice.frequency, t); hold(voiceG.gain, t);
+  voice.frequency.setValueAtTime(f * 3.5, t);
+  voice.frequency.exponentialRampToValueAtTime(f * 6.5, t + .45);
+  voice.frequency.exponentialRampToValueAtTime(f * 6.8, t + .8);
+  voice.frequency.exponentialRampToValueAtTime(f * 4.2, t + 1.4);
+  voiceG.gain.setValueAtTime(0, t); voiceG.gain.linearRampToValueAtTime(.55, t + .08); voiceG.gain.setTargetAtTime(0, t + 1.1, .12);
+  voiceRest(t + 1.7);
+}
+function growl(on) {
+  initAudio();
+  if (growling === on) return;
+  growling = on;
+  const t = ctx.currentTime;
+  hold(voice.frequency, t); hold(voiceG.gain, t);
+  if (on) voice.frequency.setTargetAtTime(cur().f * 1.5, t, .02);
+  voiceG.gain.setTargetAtTime(on ? .5 : 0, t, .04);
+}
+
+// ---------- Ritme en doorspelen ----------
+let rTimer = null, rNext = 0, rStep = 0, nextBreath = 0;
+function rhythm(on) {
+  initAudio();
+  rhythmOn = on;
+  clearInterval(rTimer); rTimer = null;
+  if (on) {
+    rNext = ctx.currentTime + .06; rStep = 0;
+    const tick = () => {
+      while (rNext < ctx.currentTime + .12) {
+        const [v, acc] = PATTERN[rStep++ % PATTERN.length], t = rNext;
+        setVowel(v, t);
+        if (acc) accent(acc, t, v);
+        rNext += 30 / +tempo.value;
+      }
+    };
+    rTimer = setInterval(tick, 25); tick();
+  }
+  gate(); syncModes();
+}
+function keep(on) {
+  initAudio();
+  latch = on;
+  nextBreath = ctx.currentTime + 3;
+  gate(); syncModes();
+}
+function silence() {
+  if (!ctx) return;
+  held.clear(); vowStack = [];
+  tootOff(); growl(false);
+  latch = false; rhythm(false);
+}
+
+// ---------- Blazen met toetsen, muis en vingers ----------
+function blowOn(src, v) {
+  initAudio();
+  if (v !== undefined) setVowel(v);
+  held.add(src); gate();
+}
+function blowOff(src) {
+  if (held.delete(src)) gate();
+}
+// Een vlak waarop je blaast door het ingedrukt te houden; schuiven verandert de mondstand
+function bindBlow(el, toVowel) {
+  const v = (ev) => { const r = el.getBoundingClientRect(); return toVowel((ev.clientX - r.left) / r.width); };
+  el.addEventListener('pointerdown', (ev) => { ev.preventDefault(); try { el.setPointerCapture(ev.pointerId); } catch {} blowOn('p' + ev.pointerId, v(ev)); });
+  el.addEventListener('pointermove', (ev) => { if (held.has('p' + ev.pointerId)) setVowel(v(ev)); });
+  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(t => el.addEventListener(t, (ev) => blowOff('p' + ev.pointerId)));
+}
+
+const FX_ACT = {
+  toot: [tootOn, tootOff], growl: [() => growl(true), () => growl(false)],
+  bark: [bark], howl: [howl], ta: [() => accent('ta')], wah: [() => accent('wah')],
+};
+const MODE_ACT = { keep: () => keep(!latch), rhythm: () => rhythm(!rhythmOn), stop: silence };
+
+// ---------- Knoppen ----------
+const btnEls = {};
+function button(parent, code, label, sub) {
+  const b = document.createElement('button');
+  b.className = 'btn'; b.innerHTML = `<b>${label}</b><span>${sub}</span>`;
+  parent.appendChild(b); btnEls[code] = b;
+  return b;
+}
+function buildButtons() {
+  const t = LANGS[lang], strip = $('strip'), fx = $('fx'), modes = $('modes');
+  strip.querySelectorAll('.btn').forEach(b => b.remove()); fx.innerHTML = ''; modes.innerHTML = '';
+  VOW_KEYS.forEach((code, i) => button(strip, code, code.slice(3), t.vowels[i]).tabIndex = -1);
+  FX.forEach(([code, kind]) => {
+    const b = button(fx, code, code.slice(3), t.fx[kind]), [down, up] = FX_ACT[kind];
+    b.addEventListener('pointerdown', (ev) => { ev.preventDefault(); try { b.setPointerCapture(ev.pointerId); } catch {} down(); b.classList.add('lit'); });
+    ['pointerup', 'pointercancel'].forEach(e => b.addEventListener(e, () => { if (up) up(); b.classList.remove('lit'); }));
+  });
+  MODES.forEach(([code, kind]) => {
+    const b = button(modes, code, code === 'Escape' ? 'Esc' : code.slice(3), t.modes[kind]);
+    b.addEventListener('click', () => { MODE_ACT[kind](); b.blur(); });
+  });
+  syncModes();
+}
+function syncModes() {
+  if (btnEls.KeyW) btnEls.KeyW.setAttribute('aria-pressed', latch);
+  if (btnEls.KeyR) btnEls.KeyR.setAttribute('aria-pressed', rhythmOn);
+}
+bindBlow($('strip'), (x) => { const s = $('strip'), pad = 16 / s.clientWidth; return ((x - pad) / (1 - 2 * pad)) * 5 - .5; });
+bindBlow($('cv'), (x) => x * 4.8 - .4);
+
+// ---------- Toetsenbord (fysieke toetsen, werkt ook bij AZERTY/QWERTZ op dezelfde plek) ----------
+document.addEventListener('keydown', (ev) => {
+  if (ev.repeat || ev.ctrlKey || ev.altKey || ev.metaKey) return;
+  if (ev.target.tagName === 'SELECT') return;
+  if (ev.target.tagName === 'INPUT' && ev.code.startsWith('Arrow')) return;
+  if (ev.target.tagName === 'BUTTON') ev.target.blur();
+  const c = ev.code, fx = FX.find(f => f[0] === c);
+  let k;
+  if (c === 'Space') blowOn(c);
+  else if ((k = VOW_KEYS.indexOf(c)) >= 0) { vowStack = vowStack.filter(x => x !== c).concat(c); blowOn(c, k); }
+  else if (fx) { FX_ACT[fx[1]][0](); btnEls[c].classList.add('lit'); if (!FX_ACT[fx[1]][1]) setTimeout(() => btnEls[c].classList.remove('lit'), 160); }
+  else if (c === 'KeyW') keep(!latch);
+  else if (c === 'KeyR') rhythm(!rhythmOn);
+  else if (c === 'Escape' || c === 'Backspace') silence();
+  else if (c === 'Comma' || c === 'ArrowLeft' || ev.key === '<') setDidge(idx - 1);
+  else if (c === 'Period' || c === 'ArrowRight' || ev.key === '>') setDidge(idx + 1);
+  else if (/^Digit[1-6]$/.test(c)) setDidge(+c.slice(5) - 1);
+  else return;
+  ev.preventDefault();
+});
+document.addEventListener('keyup', (ev) => {
+  const c = ev.code, fx = FX.find(f => f[0] === c);
+  if (c === 'Space') blowOff(c);
+  else if (VOW_KEYS.includes(c)) {
+    vowStack = vowStack.filter(x => x !== c);
+    if (vowStack.length) setVowel(VOW_KEYS.indexOf(vowStack[vowStack.length - 1]));
+    blowOff(c);
+  } else if (fx && FX_ACT[fx[1]][1]) { FX_ACT[fx[1]][1](); btnEls[c].classList.remove('lit'); }
+});
+// Venster verliest de aandacht: laat alle ingedrukte toetsen los
+window.addEventListener('blur', () => { if (!ctx) return; held.clear(); vowStack = []; tootOff(); growl(false); gate(); });
+['pointerdown', 'keydown'].forEach(t => document.addEventListener(t, initAudio, { once: true, capture: true }));
+
+// ---------- Didgeridoo wisselen ----------
+function setDidge(i) {
+  idx = ((i % DIDGES.length) + DIDGES.length) % DIDGES.length;
+  store.set('didge', idx);
+  const d = cur(), t = LANGS[lang];
+  $('name').textContent = t.names[idx];
+  $('meta').textContent = `${d.note} · ${Math.round(d.f)} Hz · ≈ ${d.cm} cm`;
+  $('mood').textContent = t.moods[idx];
+  tune();
+}
+
+// ---------- Tekenen ----------
+const cv = $('cv'), c2 = cv.getContext('2d');
+let level = 0, waves = [], lastWave = 0, lastDrift = 0;
+function rng(seed) { return () => { seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+// Beschildering per didgeridoo: banden en stippenrijen in okerkleuren
+const PAINT = DIDGES.map((d, i) => {
+  const r = rng(i * 97 + 13), out = [];
+  for (let u = .1; u < .9;) {
+    const w = .014 + r() * .045;
+    out.push({ u, w, c: Math.floor(r() * 4), dots: r() < .38, wob: r() * 6 });
+    u += w + .018 + r() * .07;
+  }
+  return out;
+});
+
+function draw(now) {
+  requestAnimationFrame(draw);
+  const dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
+  if (!w || !h) return;
+  if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+  const sec = now / 1000;
+
+  // Geluidsniveau en langzame bewegingen in de klank
+  let rms = 0;
+  if (ctx) {
+    an.getFloatTimeDomainData(anBuf);
+    for (let i = 0; i < anBuf.length; i++) rms += anBuf[i] * anBuf[i];
+    rms = Math.sqrt(rms / anBuf.length);
+    if (sec - lastDrift > .12) {
+      lastDrift = sec;
+      const cents = (Math.random() - .5) * 9;   // lippen zijn nooit helemaal stabiel
+      lipO[0].detune.setTargetAtTime(cents, ctx.currentTime, .15);
+      lipO[1].detune.setTargetAtTime(7 + cents * 1.4, ctx.currentTime, .15);
+      if (latch && !rhythmOn && !held.size) {
+        // Doorspelen: de mond beweegt traag vanzelf, met af en toe een ademhaal-stootje
+        setVowel(1.5 + 1.1 * Math.sin(sec * .23) + .7 * Math.sin(sec * .61));
+        if (ctx.currentTime > nextBreath) {
+          accent('wah'); accent('wah', ctx.currentTime + .24);
+          nextBreath = ctx.currentTime + 4 + Math.random() * 3;
+        }
+      }
+    }
+  }
+  level += (Math.min(1, rms * 3.2) - level) * .3;
+  if (level > .04 && sec - lastWave > .16) { lastWave = sec; waves.push({ t: sec, a: level }); }
+  waves = waves.filter(v => sec - v.t < 1.6);
+
+  // Mondstand-wijzer en oplichtende vlakken
+  $('marker').style.left = `calc(16px + (100% - 32px) * ${(vow + .5) / 5})`;
+  const on = blowing(), near = Math.round(vow);
+  VOW_KEYS.forEach((code, i) => btnEls[code] && btnEls[code].classList.toggle('lit', on && i === near));
+
+  c2.setTransform(dpr, 0, 0, dpr, 0, 0);
+  c2.clearRect(0, 0, w, h);
+  const d = cur();
+  // Mondstuk linksboven, klankbeker rechtsonder; steiler op een smal scherm
+  const ang = clamp(Math.atan2(h * .5, w * .82), .14, .95);
+  const maxL = Math.min(w * .8 / Math.cos(ang), h * .66 / Math.sin(ang));
+  const L = maxL * (.72 + .28 * (d.cm - 98) / 59);
+  const r0 = Math.max(4, L * .02), r1 = Math.max(9, L * .055);
+  const shake = level * 1.2;
+  c2.save();
+  c2.translate(w * .46 + (Math.random() - .5) * shake, h * .5 + (Math.random() - .5) * shake);
+  c2.rotate(ang);
+  const X = (u) => -L / 2 + u * L;
+  const R = (u) => r0 + (r1 - r0) * Math.pow(u, 1.7) + L * .0035 * Math.sin(u * 23 + idx) + L * .002 * Math.sin(u * 57 + idx * 3);
+
+  // Klankgolven uit de beker
+  c2.lineCap = 'round';
+  waves.forEach(v => {
+    const age = (sec - v.t) / 1.6, rad = r1 * 1.2 + age * L * .42;
+    c2.strokeStyle = `rgba(233, 160, 78, ${(1 - age) * (.2 + v.a * .6)})`;
+    c2.lineWidth = 1.5 + v.a * 4 * (1 - age);
+    c2.beginPath(); c2.arc(L / 2 - r1 * .5, 0, rad, -.85, .85); c2.stroke();
+  });
+
+  // Schaduw
+  c2.fillStyle = 'rgba(0, 0, 0, .3)';
+  c2.beginPath(); c2.ellipse(0, r1 * 1.5, L * .5, r1 * .5, 0, 0, Math.PI * 2); c2.fill();
+
+  // De buis: een uitgeholde eucalyptustak, licht onregelmatig
+  const tube = new Path2D();
+  const N = 60;
+  for (let i = 0; i <= N; i++) { const u = i / N; tube[i ? 'lineTo' : 'moveTo'](X(u), -R(u)); }
+  for (let i = N; i >= 0; i--) { const u = i / N; tube.lineTo(X(u), R(u) * (1 + .04 * Math.sin(u * 31))); }
+  tube.closePath();
+  const wood = c2.createLinearGradient(0, -r1, 0, r1);
+  wood.addColorStop(0, d.wood[0]); wood.addColorStop(1, d.wood[1]);
+  c2.fillStyle = wood; c2.fill(tube);
+  c2.save(); c2.clip(tube);
+  PAINT[idx].forEach(b => {
+    c2.fillStyle = d.paint[b.c];
+    if (b.dots) {
+      const x = X(b.u + b.w / 2), r = R(b.u), n = 4, dot = Math.max(1.2, r * .16);
+      for (let k = -n; k <= n; k++) { c2.beginPath(); c2.arc(x + Math.sin(k + b.wob) * dot * .5, (k / n) * r * .92, dot, 0, Math.PI * 2); c2.fill(); }
+    } else c2.fillRect(X(b.u), -r1 * 1.2, Math.max(2, b.w * L), r1 * 2.4);
+  });
+  // Ronding: licht bovenop, donker onderlangs
+  const round = c2.createLinearGradient(0, -r1, 0, r1);
+  round.addColorStop(0, 'rgba(255, 235, 200, .22)'); round.addColorStop(.35, 'rgba(0, 0, 0, 0)'); round.addColorStop(1, 'rgba(0, 0, 0, .6)');
+  c2.fillStyle = round; c2.fillRect(-L / 2 - 4, -r1 * 1.3, L + 8, r1 * 2.6);
+  c2.restore();
+
+  // Klankbeker en mondstuk van bijenwas
+  c2.fillStyle = '#120c08'; c2.strokeStyle = d.wood[0]; c2.lineWidth = Math.max(1.5, r1 * .12);
+  c2.beginPath(); c2.ellipse(L / 2, 0, r1 * .34, R(1) * .98, 0, 0, Math.PI * 2); c2.fill(); c2.stroke();
+  c2.fillStyle = '#d6a43a'; c2.strokeStyle = '#7d5a17'; c2.lineWidth = 1;
+  c2.beginPath(); c2.ellipse(-L / 2, 0, r0 * .7, r0 * 1.25, 0, 0, Math.PI * 2); c2.fill(); c2.stroke();
+  if (level > .02) {
+    const g = c2.createRadialGradient(-L / 2, 0, 0, -L / 2, 0, r0 * 5);
+    g.addColorStop(0, `rgba(255, 213, 154, ${level * .6})`); g.addColorStop(1, 'rgba(255, 184, 96, 0)');
+    c2.fillStyle = g; c2.beginPath(); c2.arc(-L / 2, 0, r0 * 5, 0, Math.PI * 2); c2.fill();
+  }
+  c2.restore();
+}
+
+// ---------- Bediening ----------
+const vol = $('vol'), verb = $('verb'), tempo = $('tempo');
+vol.value = store.get('vol', .8); verb.value = store.get('verb', .25); tempo.value = store.get('tempo', 96);
+vol.oninput = () => { applyMix(); store.set('vol', +vol.value); };
+verb.oninput = () => { applyMix(); store.set('verb', +verb.value); };
+tempo.oninput = () => store.set('tempo', +tempo.value);
+$('prev').onclick = () => setDidge(idx - 1);
+$('next').onclick = () => setDidge(idx + 1);
+
+// Eerste keer: taal van de browser als we die hebben, anders Engels
+const langEl = $('lang');
+let lang = store.get('lang', null);
+if (!LANGS[lang]) lang = (navigator.languages || [navigator.language]).map(l => (l || '').slice(0, 2)).find(l => LANGS[l]) || 'en';
+
+function applyLang() {
+  const t = LANGS[lang];
+  document.documentElement.lang = lang;
+  document.querySelectorAll('[data-t]').forEach(el => {
+    if (el.dataset.t === 'keys') el.innerHTML = t.keys; else el.textContent = t[el.dataset.t];
+  });
+  $('prev').title = t.prev; $('next').title = t.next;
+  document.querySelector('#lang optgroup').label = t.more;
+  langEl.value = lang;
+  buildButtons();
+  setDidge(idx);
+}
+langEl.onchange = () => { lang = langEl.value; store.set('lang', lang); applyLang(); langEl.blur(); };
+
+applyLang();
+requestAnimationFrame(draw);
+</script>
+</body>
+</html>
