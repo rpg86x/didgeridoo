@@ -16,7 +16,10 @@ function Check($step) { if ($LASTEXITCODE -ne 0) { throw "Mislukt: $step" } }
 
 Remove-Item -Recurse -Force $build -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force "$build\classes", "$build\dex", "$build\gen", "$build\assets", $out | Out-Null
-Copy-Item "$root\..\index.html", "$root\..\logo.png" "$build\assets"
+# Nieuwste liedjes uit Song Library meenemen (map song-library naast didgeridoo), als die er is
+$library = "$root\..\..\song-library\songs.js"
+if (Test-Path $library) { Copy-Item $library "$root\..\songs.js" -Force }
+Copy-Item "$root\..\index.html", "$root\..\songs.js", "$root\..\logo.png" "$build\assets"
 
 & "$bt\aapt2.exe" compile --dir "$root\res" -o "$build\res.zip"; Check 'resources compileren'
 & "$bt\aapt2.exe" link -o "$build\unsigned.apk" -I $jar --manifest "$root\AndroidManifest.xml" -A "$build\assets" --java "$build\gen" "$build\res.zip"; Check 'resources linken'

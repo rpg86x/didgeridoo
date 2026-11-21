@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Didgeridoo 1.0</title>
+<title>Didgeridoo 1.2</title>
 <link rel="icon" href="logo.png">
 <style>
   :root {
@@ -61,6 +61,17 @@
   #modes .btn { min-width: 150px; flex-direction: row; gap: 8px; min-height: 40px; }
   #modes .btn b { color: #c9a9e6; }
   #modes .btn span { font-size: 13px; }
+  /* Ritme uit Song Library */
+  #songBar { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px; padding: 8px 16px 0; }
+  #songBar[hidden] { display: none; }
+  #songBar select, #songBar button { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 999px; padding: 7px 14px; font: inherit; font-size: 14px; cursor: pointer; }
+  #songBar select { max-width: 55vw; } #songBar option, #songBar optgroup { background: #1c1712; }
+  #songBar button.on { background: rgba(255, 77, 77, .25); border-color: #ff4d4d; }
+  #songStatus { font-size: 13px; color: var(--muted); min-width: 140px; text-align: center; }
+  #songStatus.good { color: #8fd3b0; } #songStatus.bad { color: #ff7a7a; }
+  #songHint { width: 100%; text-align: center; font-size: 12px; color: var(--muted); }
+  .btn.target { background: rgba(255, 70, 70, .35) !important; border-color: #ff4d4d !important; box-shadow: 0 0 0 2px rgba(255, 77, 77, .5); }
+  .btn.next { border-color: #ff9a8a !important; border-style: dashed; }
   #controls { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 22px; padding: 10px 16px 4px; }
   label { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
   input[type=range] { width: 110px; accent-color: var(--accent); }
@@ -84,7 +95,7 @@
 </head>
 <body>
 <header>
-  <h1>Didgeridoo 1.0</h1>
+  <h1>Didgeridoo 1.2</h1>
   <button class="nav" id="prev">‹</button>
   <div id="info"><div id="name"></div><div id="meta"></div><div id="mood"></div></div>
   <button class="nav" id="next">›</button>
@@ -105,17 +116,28 @@
 <div id="fx"></div>
 <div id="modes"></div>
 
+<div id="songBar" hidden>
+  <select id="songSel" aria-label="Song"></select>
+  <button id="songListen"></button>
+  <button id="songPractice"></button>
+  <button id="songStop">■</button>
+  <span id="songStatus"></span>
+  <span id="songHint"></span>
+</div>
+
 <div id="controls">
   <label><span data-t="volume"></span> <input type="range" id="vol" min="0" max="1" step="0.01" value="0.8"></label>
   <label><span data-t="reverb"></span> <input type="range" id="verb" min="0" max="1" step="0.01" value="0.25"></label>
   <label><span data-t="tempo"></span> <input type="range" id="tempo" min="60" max="150" step="1" value="96"></label>
+  <label><input type="checkbox" id="phoneSpk"> <span data-t="phoneSpk"></span></label>
 </div>
 
 <footer>
   <span id="keys" data-t="keys"></span>
-  <span><a href="https://urbantechmonk.gumroad.com/coffee" target="_blank" rel="noopener" data-t="donate"></a> · Didgeridoo 1.0</span>
+  <span><a href="https://urbantechmonk.gumroad.com/coffee" target="_blank" rel="noopener" data-t="donate"></a> · Didgeridoo 1.2</span>
 </footer>
 
+<script src="songs.js"></script>
 <script>
 // ---------- Didgeridoos, van laag naar hoog ----------
 // f = grondtoon (drone), toot = verhouding van de overblaastoon, cm = lengte bij benadering
@@ -142,7 +164,7 @@ const KEYS = (blow, mouth, fx, acc, keep, rhythm, didge) =>
 const LANGS = {
   en: {
     prev: 'Previous didgeridoo (< or ←)', next: 'Next didgeridoo (> or →)',
-    volume: 'Volume', reverb: 'Reverb', tempo: 'Tempo', space: 'Space',
+    volume: 'Volume', reverb: 'Reverb', tempo: 'Tempo', space: 'Space', phoneSpk: 'Phone speaker',
     vowels: ['oo', 'oh', 'ah', 'eh', 'ee'],
     fx: { toot: 'Toot', bark: 'Bark', howl: 'Howl', growl: 'Growl', ta: 'Ta', wah: 'Wah' },
     modes: { keep: 'Keep droning', rhythm: 'Rhythm', stop: 'Silence' },
@@ -154,7 +176,7 @@ const LANGS = {
   },
   nl: {
     prev: 'Vorige didgeridoo (< of ←)', next: 'Volgende didgeridoo (> of →)',
-    volume: 'Volume', reverb: 'Galm', tempo: 'Tempo', space: 'Spatie',
+    volume: 'Volume', reverb: 'Galm', tempo: 'Tempo', space: 'Spatie', phoneSpk: 'Telefoonspeaker',
     vowels: ['oe', 'oo', 'aa', 'è', 'ie'],
     fx: { toot: 'Toeter', bark: 'Blaf', howl: 'Huil', growl: 'Grom', ta: 'Ta', wah: 'Wah' },
     modes: { keep: 'Laten doorspelen', rhythm: 'Ritme', stop: 'Stilte' },
@@ -166,7 +188,7 @@ const LANGS = {
   },
   de: {
     prev: 'Vorheriges Didgeridoo (< oder ←)', next: 'Nächstes Didgeridoo (> oder →)',
-    volume: 'Lautstärke', reverb: 'Hall', tempo: 'Tempo', space: 'Leertaste',
+    volume: 'Lautstärke', reverb: 'Hall', tempo: 'Tempo', space: 'Leertaste', phoneSpk: 'Handylautsprecher',
     vowels: ['u', 'o', 'a', 'ä', 'i'],
     fx: { toot: 'Tröte', bark: 'Bellen', howl: 'Heulen', growl: 'Knurren', ta: 'Ta', wah: 'Wah' },
     modes: { keep: 'Weiterspielen', rhythm: 'Rhythmus', stop: 'Stille' },
@@ -178,7 +200,7 @@ const LANGS = {
   },
   fr: {
     prev: 'Didgeridoo précédent (< ou ←)', next: 'Didgeridoo suivant (> ou →)',
-    volume: 'Volume', reverb: 'Réverb', tempo: 'Tempo', space: 'Espace',
+    volume: 'Volume', reverb: 'Réverb', tempo: 'Tempo', space: 'Espace', phoneSpk: 'Haut-parleur du téléphone',
     vowels: ['ou', 'o', 'a', 'è', 'i'],
     fx: { toot: 'Trompe', bark: 'Aboiement', howl: 'Hurlement', growl: 'Grognement', ta: 'Ta', wah: 'Wah' },
     modes: { keep: 'Laisser jouer', rhythm: 'Rythme', stop: 'Silence' },
@@ -190,7 +212,7 @@ const LANGS = {
   },
   es: {
     prev: 'Didgeridoo anterior (< o ←)', next: 'Didgeridoo siguiente (> o →)',
-    volume: 'Volumen', reverb: 'Reverb', tempo: 'Tempo', space: 'Espacio',
+    volume: 'Volumen', reverb: 'Reverb', tempo: 'Tempo', space: 'Espacio', phoneSpk: 'Altavoz del móvil',
     vowels: ['u', 'o', 'a', 'e', 'i'],
     fx: { toot: 'Trompeta', bark: 'Ladrido', howl: 'Aullido', growl: 'Gruñido', ta: 'Ta', wah: 'Wah' },
     modes: { keep: 'Dejar sonar', rhythm: 'Ritmo', stop: 'Silencio' },
@@ -220,6 +242,11 @@ const blowing = () => held.size > 0 || latch || rhythmOn;
 
 // ---------- Audio ----------
 let ctx, master, bus, wet, an, anBuf, noiseBuf;
+// Telefoonspeaker-modus: kleine speakers kunnen de grondtoon (62-98 Hz) niet maken en gaan dan rammelen.
+// Dan filteren we die weg en laten de boventonen de toonhoogte dragen.
+const isPhone = () => /Android|iPhone/i.test(navigator.userAgent) && Math.min(screen.width, screen.height) < 600;
+let phoneSpk = store.get('phoneSpk', isPhone());
+let comp, hp1, hp2, pres, trim, subG;
 let lip, breath, sum, bp1, bp2, bp3, g2, bodyLP, lipO = [], sub, voice, voiceG, tootO = [], tootG, tootStart = 0;
 
 function initAudio() {
@@ -230,9 +257,9 @@ function initAudio() {
   const F = (type, f, q) => { const b = ctx.createBiquadFilter(); b.type = type; b.frequency.value = f; b.Q.value = q; return b; };
 
   master = G(0);
-  const comp = ctx.createDynamicsCompressor();
-  comp.threshold.value = -14; comp.ratio.value = 4;
-  master.connect(comp).connect(ctx.destination);
+  comp = ctx.createDynamicsCompressor();
+  hp1 = F('highpass', 10, .7); hp2 = F('highpass', 10, .7); pres = F('peaking', 650, 1); trim = G(1);
+  master.connect(hp1).connect(hp2).connect(pres).connect(trim).connect(comp).connect(ctx.destination);
   an = ctx.createAnalyser(); an.fftSize = 1024; anBuf = new Float32Array(an.fftSize); comp.connect(an);
   bus = G(1);
   bus.connect(G(.9)).connect(master);
@@ -251,7 +278,7 @@ function initAudio() {
   lip = G(0);
   lipO = [O('sawtooth', f), O('sawtooth', f)];
   sub = O('sine', f);
-  lipO[0].connect(G(.5)).connect(lip); lipO[1].connect(G(.3)).connect(lip); sub.connect(G(.45)).connect(lip);
+  lipO[0].connect(G(.5)).connect(lip); lipO[1].connect(G(.3)).connect(lip); subG = G(.45); sub.connect(subG).connect(lip);
   lip.connect(tubeIn);
   // Stem door de buis: blaf, huil en grom
   voice = O('sawtooth', f * 1.5); voiceG = G(0);
@@ -275,7 +302,7 @@ function initAudio() {
   for (let i = 0; i < 1024; i++) curve[i] = Math.tanh((i / 511.5 - 1) * 1.6);
   shaper.curve = curve; shaper.oversample = '2x';
   sum.connect(shaper).connect(G(.42)).connect(bus);
-  tune(); setVowel(vow); applyMix();
+  tune(); setVowel(vow); applyPhone();
 }
 
 function impulse(sec) {
@@ -289,7 +316,17 @@ function impulse(sec) {
 function applyMix() {
   if (!ctx) return;
   master.gain.setTargetAtTime(+vol.value, ctx.currentTime, .05);
-  wet.gain.setTargetAtTime(+verb.value * .9, ctx.currentTime, .05);
+  wet.gain.setTargetAtTime(+verb.value * .9 * (phoneSpk ? .6 : 1), ctx.currentTime, .05);
+}
+function applyPhone() {
+  if (!ctx) return;
+  const t = ctx.currentTime, on = phoneSpk;
+  hp1.frequency.setTargetAtTime(on ? 180 : 10, t, .02); hp2.frequency.setTargetAtTime(on ? 180 : 10, t, .02);
+  pres.gain.setTargetAtTime(on ? 4 : 0, t, .02);
+  trim.gain.setTargetAtTime(on ? .75 : 1, t, .02);
+  subG.gain.setTargetAtTime(on ? .1 : .45, t, .02);
+  comp.threshold.value = on ? -20 : -14; comp.ratio.value = on ? 6 : 4;
+  applyMix();
 }
 // Toekomstige automatisering wissen zonder dat de waarde verspringt
 const hold = (p, t) => { if (p.cancelAndHoldAtTime) p.cancelAndHoldAtTime(t); else p.cancelScheduledValues(t); };
@@ -653,6 +690,8 @@ const vol = $('vol'), verb = $('verb'), tempo = $('tempo');
 vol.value = store.get('vol', .8); verb.value = store.get('verb', .25); tempo.value = store.get('tempo', 96);
 vol.oninput = () => { applyMix(); store.set('vol', +vol.value); };
 verb.oninput = () => { applyMix(); store.set('verb', +verb.value); };
+$('phoneSpk').checked = phoneSpk;
+$('phoneSpk').onchange = (e) => { phoneSpk = e.target.checked; store.set('phoneSpk', phoneSpk); applyPhone(); e.target.blur(); };
 tempo.oninput = () => store.set('tempo', +tempo.value);
 $('prev').onclick = () => setDidge(idx - 1);
 $('next').onclick = () => setDidge(idx + 1);
@@ -676,7 +715,109 @@ function applyLang() {
 }
 langEl.onchange = () => { lang = langEl.value; store.set('lang', lang); applyLang(); langEl.blur(); };
 
+// ---------- Ritme uit Song Library (songs.js) ----------
+// Een didgeridoo speelt één toon: elk liedje wordt een ritme. Noten in het hoogste derde van het liedje = toeter (Z), de rest = tongslag (J).
+const LIB = window.SONG_LIBRARY || null;
+const SONG_TXT = {
+  en: { listen: '▶ Listen', practice: '🎯 Practice', stop: 'Stop song', pick: 'Pick a song: play its rhythm on the didgeridoo', note: 'Beat', of: 'of', done: 'Well done! Mistakes:', miss: 'Not that one: press the red button', hint: 'High notes = Toot (Z) · other notes = Ta tongue stroke (J)' },
+  nl: { listen: '▶ Luisteren', practice: '🎯 Oefenen', stop: 'Liedje stoppen', pick: 'Kies een liedje: speel het ritme op de didgeridoo', note: 'Tel', of: 'van', done: 'Goed gedaan! Fouten:', miss: 'Niet die: druk op de rode knop', hint: 'Hoge noten = Toeter (Z) · andere noten = Ta-tongslag (J)' },
+  de: { listen: '▶ Anhören', practice: '🎯 Üben', stop: 'Lied stoppen', pick: 'Wähle ein Lied: spiele seinen Rhythmus auf dem Didgeridoo', note: 'Schlag', of: 'von', done: 'Gut gemacht! Fehler:', miss: 'Nicht diese: drücke die rote Taste', hint: 'Hohe Noten = Tröte (Z) · andere Noten = Ta-Zungenschlag (J)' },
+  fr: { listen: '▶ Écouter', practice: '🎯 S\'exercer', stop: 'Arrêter', pick: 'Choisissez une chanson : jouez son rythme au didgeridoo', note: 'Temps', of: 'sur', done: 'Bravo ! Erreurs :', miss: 'Pas celui-là : appuyez sur le bouton rouge', hint: 'Notes aiguës = Trompe (Z) · autres notes = coup de langue Ta (J)' },
+  es: { listen: '▶ Escuchar', practice: '🎯 Practicar', stop: 'Detener', pick: 'Elige una canción: toca su ritmo en el didgeridoo', note: 'Golpe', of: 'de', done: '¡Muy bien! Errores:', miss: 'Ese no: pulsa el botón rojo', hint: 'Notas agudas = Trompeta (Z) · otras notas = golpe de lengua Ta (J)' },
+};
+const sTxt = () => SONG_TXT[lang] || SONG_TXT.en;
+const noteMidi = (n) => { const m = n.match(/^([A-G])(#|b)?(\d)$/); return 12 * (+m[3] + 1) + { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 }[m[1]] + (m[2] === '#' ? 1 : m[2] === 'b' ? -1 : 0); };
+const SONGS = LIB ? LIB.songs.map(([id, cat, bpm, str]) => {
+  const items = str.split(' ').map(tok => { const [n, d] = tok.split(':'); return { n, rest: n === 'R', beats: d ? +d : 1 }; });
+  const m = items.filter(x => !x.rest).map(x => noteMidi(x.n)), lo = Math.min(...m), hi = Math.max(...m);
+  // Slag per noot: 'toot' of 'ta'
+  return { id, cat, bpm, items, hits: m.map(x => (hi - lo >= 3 && x >= lo + (hi - lo) * 2 / 3 ? 'toot' : 'ta')) };
+}) : [];
+const HIT_KEY = { toot: 'KeyZ', ta: 'KeyJ' };
+const song = { mode: 'idle', sg: null, pos: 0, misses: 0, timers: [] };
+const songName = (id) => (LIB.names[lang] || {})[id] || LIB.names.en[id];
+function songStatus(t, c) { $('songStatus').textContent = t; $('songStatus').className = c || ''; }
+function songMark() {
+  Object.values(btnEls).forEach(b => b.classList.remove('target', 'next'));
+  if (song.mode === 'idle') return;
+  const now = song.sg.hits[song.pos], nxt = song.sg.hits[song.pos + 1];
+  if (song.mode === 'practice' && nxt && nxt !== now) btnEls[HIT_KEY[nxt]].classList.add('next');
+  if (now) btnEls[HIT_KEY[now]].classList.add('target');
+}
+function songButtons() {
+  $('songListen').textContent = sTxt().listen; $('songPractice').textContent = sTxt().practice; $('songStop').title = sTxt().stop; $('songHint').textContent = sTxt().hint;
+  $('songListen').classList.toggle('on', song.mode === 'listen'); $('songPractice').classList.toggle('on', song.mode === 'practice');
+}
+function songStop(quiet) {
+  song.timers.forEach(clearTimeout); song.timers = [];
+  if (song.mode !== 'idle') { blowOff('song'); if (latch) keep(false); }
+  song.mode = 'idle'; songMark(); songButtons();
+  if (!quiet) songStatus(sTxt().pick);
+}
+function songProgress() { songStatus(`${sTxt().note} ${Math.min(song.pos + 1, song.sg.hits.length)} ${sTxt().of} ${song.sg.hits.length}`); }
+function songPrepare() { const sg = SONGS[+$('songSel').value]; if (!sg) return false; Object.assign(song, { sg, pos: 0, misses: 0 }); return true; }
+function songPractice() {
+  initAudio(); songStop(true); if (!songPrepare()) return;
+  song.mode = 'practice'; keep(true);          // de grondtoon klinkt door, jij speelt de slagen
+  songMark(); songButtons(); songProgress();
+}
+function songListen() {
+  initAudio(); songStop(true); if (!songPrepare()) return;
+  song.mode = 'listen'; blowOn('song');
+  songMark(); songButtons(); songProgress();
+  const beat = 60 / song.sg.bpm * 1000;
+  let at = 300, k = 0;
+  song.sg.items.forEach(x => {
+    if (!x.rest) {
+      const n = k++;
+      song.timers.push(setTimeout(() => {
+        song.pos = n; songMark(); songProgress();
+        if (song.sg.hits[n] === 'toot') { tootOn(); song.timers.push(setTimeout(tootOff, Math.min(400, x.beats * beat * .7))); }
+        else accent('ta');
+      }, at));
+    }
+    at += x.beats * beat;
+  });
+  song.timers.push(setTimeout(() => songStop(), at + 400));
+}
+function songHit(kind) {
+  if (song.mode !== 'practice') return;
+  if (kind === song.sg.hits[song.pos]) {
+    song.pos++;
+    if (song.pos >= song.sg.hits.length) { const m = song.misses; songStop(true); songStatus(`${sTxt().done} ${m}`, 'good'); return; }
+    songMark(); songProgress();
+  } else if (kind === 'toot' || kind === 'ta') { song.misses++; songStatus(sTxt().miss, 'bad'); }
+}
+// Toeter en tongslag (knop of toets) tellen mee bij het oefenen
+const baseToot = FX_ACT.toot[0], baseTa = FX_ACT.ta[0];
+FX_ACT.toot[0] = () => { baseToot(); songHit('toot'); };
+FX_ACT.ta[0] = () => { baseTa(); songHit('ta'); };
+function songLabels() {
+  if (!LIB) return;
+  $('songBar').hidden = false;
+  const sel = $('songSel'), v = sel.value || store.get('song', '');
+  sel.innerHTML = '';
+  LIB.cats.forEach(cat => {
+    const g = document.createElement('optgroup');
+    g.label = (LIB.catNames[lang] || LIB.catNames.en)[cat];
+    SONGS.forEach((sg, i) => { if (sg.cat === cat) g.appendChild(new Option('🎵 ' + songName(sg.id), i)); });
+    sel.appendChild(g);
+  });
+  if (v !== '') sel.value = v;
+  songButtons(); songMark();
+  if (song.mode === 'idle') songStatus(sTxt().pick);
+}
+const baseApplyLang = applyLang;
+applyLang = function () { baseApplyLang(); songLabels(); };
+$('songSel').onchange = () => { store.set('song', $('songSel').value); songStop(); $('songSel').blur(); };
+$('songListen').onclick = songListen;
+$('songPractice').onclick = songPractice;
+$('songStop').onclick = () => songStop();
+
 applyLang();
+// Openen vanuit Song Library: index.html?song=<id>&mode=practice|listen
+window.openSong = function (id, mode) { const i = SONGS.findIndex(sg => sg.id === id); if (i < 0) return; $('songSel').value = i; mode === 'listen' ? songListen() : songPractice(); };
+{ const q = new URLSearchParams(location.search); if (q.get('song')) openSong(q.get('song'), q.get('mode')); }
 requestAnimationFrame(draw);
 </script>
 </body>
