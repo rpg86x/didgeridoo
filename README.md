@@ -1,4 +1,4 @@
-# Didgeridoo 1.2
+# Didgeridoo 1.3
 
 A didgeridoo you can play on your keyboard, mouse or touchscreen, for Windows and any modern browser. Hold to blow the drone, change the shape of your mouth to bring out the overtones, and add toots, barks, howls and tongue accents. Every sound is synthesized live with the Web Audio API, so there are no audio files and the app needs no internet.
 
@@ -15,6 +15,10 @@ One app for phones and tablets: the same APK installs on both and adapts to the 
 - **Phone:** opens in portrait with all buttons on one screen; the *Phone speaker* mode switches on by itself because a phone speaker can't play the low drone.
 - **Tablet:** the same layout, larger; the phone-speaker mode is off.
 
+
+## What's new in 1.3
+
+- **Clean sound on Android:** some Android phones crackled because the WebView ran out of audio buffer. On Android the app now uses a larger audio buffer, a shorter reverb tail and schedules notes 20 ms ahead. Desktop is unchanged.
 
 ## Didgeridoos
 
