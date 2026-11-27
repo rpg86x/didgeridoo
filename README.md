@@ -8,6 +8,14 @@ A didgeridoo you can play on your keyboard, mouse or touchscreen, for Windows an
 
 The didgeridoo (yidaki) comes from the Aboriginal peoples of northern Australia, who have played it for well over a thousand years. This app is a simple tribute to that sound. The painted bands and dots are plain decoration and do not copy any traditional design.
 
+## Phone or tablet?
+
+One app for phones and tablets: the same APK installs on both and adapts to the screen by itself.
+
+- **Phone:** opens in portrait with all buttons on one screen; the *Phone speaker* mode switches on by itself because a phone speaker can't play the low drone.
+- **Tablet:** the same layout, larger; the phone-speaker mode is off.
+
+
 ## Didgeridoos
 
 | # | Key | Length | Character |
